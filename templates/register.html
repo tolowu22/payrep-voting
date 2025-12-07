@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Voter Registration | TAT Voting</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Same dynamic background but maybe slightly different hue if desired */
+        body {
+            background: linear-gradient(-45deg, #11998e, #38ef7d, #0f0c29, #302b63);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .voting-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(8px);
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-control {
+            border-radius: 50px;
+            padding: 12px 20px;
+            border: 2px solid #eee;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #38ef7d;
+            box-shadow: 0 0 10px rgba(56, 239, 125, 0.2);
+        }
+
+        .btn-register {
+            background: linear-gradient(45deg, #11998e, #38ef7d);
+            border: none;
+            border-radius: 50px;
+            padding: 12px;
+            font-weight: bold;
+            color: white;
+            transition: transform 0.2s;
+        }
+
+        .btn-register:hover {
+            transform: scale(1.03);
+            background: linear-gradient(45deg, #38ef7d, #11998e);
+        }
+
+        .icon-header {
+            font-size: 3rem;
+            background: -webkit-linear-gradient(#11998e, #38ef7d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="voting-card text-center">
+        <div class="mb-3">
+            <i class="fa-solid fa-user-plus icon-header"></i>
+        </div>
+        
+        <h3 class="fw-bold text-dark mb-1">Voter Registration</h3>
+        <p class="text-muted small mb-4">Create your Unique Blockchain Identity</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} py-2 small shadow-sm">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="text-start">
+            <div class="mb-3">
+                <label class="form-label ms-2 small fw-bold text-secondary">Choose Username</label>
+                <input type="text" name="username" class="form-control" placeholder="Desired Voter ID" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label ms-2 small fw-bold text-secondary">Set Password</label>
+                <input type="password" name="password" class="form-control" placeholder="Create a strong key" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 btn-register shadow">
+                <i class="fa-solid fa-fingerprint me-2"></i> Register Identity
+            </button>
+        </form>
+
+        <div class="mt-4 pt-3 border-top">
+            <small class="text-muted">Already registered?</small><br>
+            <a href="/login" class="text-decoration-none fw-bold" style="color: #11998e;">Back to Login</a>
+        </div>
+    </div>
+
+</body>
+</html>

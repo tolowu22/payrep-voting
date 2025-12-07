@@ -1,0 +1,15 @@
+# 1. Ignore the Secret Keys
+.env
+
+# 2. Ignore the Database (Contains user passwords/data)
+users.db
+*.sqlite3
+
+# 3. Ignore Python System Files (Junk files)
+__pycache__/
+*.pyc
+
+# 4. Ignore the Virtual Environment (Dependencies)
+venv/
+env/
+.vscode/

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | TAT Blockchain Node</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 1. GLOBAL STYLES & ANIMATION --- */
+        body {
+            /* The "High-Tech" Animated Background */
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #141E30);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- 2. GLASSMORPHISM CARDS --- */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95); /* High opacity for readability */
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            color: #333; /* Dark text inside cards */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header-custom {
+            background: linear-gradient(90deg, #f8f9fa, #e9ecef);
+            padding: 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #2c3e50;
+        }
+
+        /* --- 3. NAVBAR --- */
+        .navbar-glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 3rem;
+        }
+
+        .user-pill {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 20px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.9rem;
+        }
+
+        /* --- 4. BLOCKCHAIN TIMELINE --- */
+        .timeline-container {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        /* The vertical glowing line */
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 15px;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #4facfe, #00f2fe);
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.6);
+        }
+
+        .block-node {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        /* The glowing dot for each block */
+        .block-node::after {
+            content: '';
+            position: absolute;
+            left: -34px; /* Adjust based on container padding */
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border: 3px solid #4facfe;
+            border-radius: 50%;
+            z-index: 2;
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.8);
+        }
+
+        /* --- 5. TYPOGRAPHY & UTILS --- */
+        .hash-font {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #6c757d;
+            background: #f1f3f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(45deg, #434343, #000000);
+            border: none;
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+        }
+        
+        .btn-gradient:hover { color: #4facfe; }
+
+        .btn-mine {
+            background: linear-gradient(45deg, #f09819, #edde5d);
+            border: none;
+            color: #333;
+            font-weight: 800;
+        }
+
+        /* Pulse animation for Pending Badge */
+        .badge-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                <i class="fa-solid fa-cube fa-lg me-2 text-info"></i> 
+                <span style="letter-spacing: 1px;">TAT NODE</span>
+            </a>
+            
+            <div class="d-flex align-items-center">
+                <div class="user-pill d-flex align-items-center me-3">
+                    <i class="fa-solid fa-circle-user text-warning me-2"></i>
+                    <span class="fw-bold">{{ user.username }}</span>
+                    <span class="mx-2 text-white-50">|</span>
+                    <span class="text-success small"><i class="fa-solid fa-link me-1"></i>Connected</span>
+                </div>
+                <a href="/logout" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold hover-danger">
+                    <i class="fa-solid fa-power-off"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-lg border-0 rounded-3" role="alert">
+                <i class="fa-solid fa-bell me-2"></i> <strong>{{ message }}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="row g-4 mb-5">
+            
+            <div class="col-lg-5">
+                <div class="glass-card h-100">
+                    <div class="card-header-custom d-flex justify-content-between align-items-center">
+                        <span><i class="fa-solid fa-check-to-slot text-primary me-2"></i>Voting Booth</span>
+                        <span class="badge bg-primary rounded-pill">Secure</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <form action="/vote" method="POST">
+                            <div class="mb-4">
+                                <label class="form-label text-uppercase text-muted small fw-bold">Verified Identity</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-0"><i class="fa-solid fa-fingerprint text-secondary"></i></span>
+                                    <input type="text" class="form-control border-0 bg-light fw-bold text-dark" value="{{ user.username }}" disabled readonly>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-uppercase text-muted small fw-bold">Select Candidate</label>
+                                <select name="candidate" class="form-select form-select-lg border-2" style="border-color: #e9ecef;" required>
+                                    <option value="" disabled selected>Select from official ballot...</option>
+                                    {% for person in candidates %}
+                                        <option value="{{ person }}">{{ person }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-gradient w-100 rounded-pill shadow-sm">
+                                <i class="fa-solid fa-paper-plane me-2"></i> CAST VOTE
+                            </button>
+                        </form>
+
+                        <hr class="my-4 text-muted">
+
+                        <h6 class="text-uppercase text-muted small fw-bold mb-3"><i class="fa-solid fa-chart-pie me-2"></i>Live Tally (Mempool + Chain)</h6>
+                        <div style="max-height: 200px; overflow-y: auto; padding-right: 5px;">
+                            {% for name, count in vote_counts.items() %}
+                                {% if count > 0 %}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="fw-bold">{{ name }}</span>
+                                        <span class="fw-bold text-primary">{{ count }} votes</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ (count * 5) }}%;"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            {% if vote_counts.values()|sum == 0 %}
+                                <p class="text-center text-muted small fst-italic mt-3">Waiting for first vote...</p>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="glass-card h-100">
+                    <div class="card-header-custom d-flex justify-content-between align-items-center">
+                        <span><i class="fa-solid fa-network-wired text-warning me-2"></i>Mempool Status</span>
+                        {% if pending %}
+                            <span class="badge bg-warning text-dark rounded-pill badge-pulse">{{ pending|length }} Pending</span>
+                        {% else %}
+                            <span class="badge bg-success rounded-pill">Synced</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="flex-grow-1">
+                            {% if pending %}
+                                <div class="alert alert-warning border-0 bg-warning bg-opacity-10 mb-3">
+                                    <small><i class="fa-solid fa-triangle-exclamation me-1"></i> These votes are waiting to be sealed into a block.</small>
+                                </div>
+                                <div class="list-group list-group-flush">
+                                    {% for vote in pending %}
+                                    <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center border-bottom">
+                                        <div>
+                                            <i class="fa-solid fa-circle-notch fa-spin text-muted me-2"></i>
+                                            <span class="fw-bold text-dark">{{ vote.voter_id }}</span>
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted d-block">voting for</small>
+                                            <span class="badge bg-dark">{{ vote.candidate }}</span>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-box-open fa-3x mb-3 text-secondary opacity-50"></i>
+                                    <h5>Mempool is Empty</h5>
+                                    <p class="small">All votes have been confirmed and added to the blockchain.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mt-4 d-grid gap-2">
+                            {% if pending %}
+                            <a href="/mine" class="btn btn-mine rounded-pill shadow">
+                                <i class="fa-solid fa-hammer me-2"></i> INITIATE MINING SEQUENCE
+                            </a>
+                            {% else %}
+                            <button class="btn btn-light rounded-pill border" disabled>
+                                <i class="fa-solid fa-check me-2"></i> Up to Date
+                            </button>
+                            {% endif %}
+                            
+                            <a href="/validate" class="btn btn-outline-secondary rounded-pill btn-sm mt-2">
+                                <i class="fa-solid fa-shield-halved me-1"></i> Audit & Verify Chain Integrity
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <h4 class="text-white mb-4 fw-bold text-uppercase" style="letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                    <i class="fa-solid fa-link me-2 text-info"></i>Immutable Ledger
+                </h4>
+                
+                <div class="timeline-container">
+                    {% for block in chain %}
+                    <div class="block-node">
+                        <div class="glass-card p-0">
+                            <div class="card-body p-0">
+                                <div class="row g-0 align-items-center">
+                                    
+                                    <div class="col-md-2 text-center p-4 bg-light border-end">
+                                        <h2 class="display-6 fw-bold text-primary mb-0">#{{ block.index }}</h2>
+                                        <span class="badge bg-dark text-uppercase mt-2">Block Height</span>
+                                    </div>
+
+                                    <div class="col-md-7 p-4">
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <small class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Previous Hash</small><br>
+                                                <span class="hash-font">{{ block.previous_hash }}</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Proof of Work</small><br>
+                                                <span class="text-dark fw-bold font-monospace">{{ block.proof }}</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Timestamp</small><br>
+                                                <span class="text-dark">{{ block.timestamp }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3 p-4 bg-light bg-opacity-50 border-start">
+                                        <h6 class="fw-bold text-dark mb-3">
+                                            <i class="fa-solid fa-file-contract me-2 text-secondary"></i>Data
+                                        </h6>
+                                        {% if block.votes %}
+                                            <div style="max-height: 80px; overflow-y: auto;">
+                                            {% for vote in block.votes %}
+                                                <div class="d-flex justify-content-between small mb-1 border-bottom pb-1">
+                                                    <span class="fw-bold text-secondary">{{ vote.voter_id }}</span>
+                                                    <span class="text-primary">{{ vote.candidate }}</span>
+                                                </div>
+                                            {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <div class="text-muted small fst-italic">
+                                                <i class="fa-solid fa-flag-checkered me-1"></i> Genesis Block
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
