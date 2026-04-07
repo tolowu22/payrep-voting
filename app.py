@@ -264,13 +264,20 @@ def vote():
     candidate = request.form.get('candidate')
     
     if candidate:
-        success = blockchain.new_vote(voter_id, candidate)
-        if success:
-            blockchain.save_state(CHAIN_FILE)
-            log_activity("Vote cast", current_user.username, f"For {candidate}")
-            flash(f"Vote cast for {candidate} successfully!", "success")
-        else:
-            flash(f"ERROR: {voter_id}, you have already voted!", "danger")
+        try:
+            success = blockchain.new_vote(voter_id, candidate)
+            if success:
+                try:
+                    blockchain.save_state(CHAIN_FILE)
+                except Exception as e:
+                    print(f"Warning: Could not save blockchain state ({type(e).__name__}), continuing")
+                log_activity("Vote cast", current_user.username, f"For {candidate}")
+                flash(f"Vote cast for {candidate} successfully!", "success")
+            else:
+                flash(f"ERROR: {voter_id}, you have already voted!", "danger")
+        except Exception as e:
+            print(f"Error in vote: {type(e).__name__}: {e}")
+            flash("Error processing vote. Please try again.", "danger")
     else:
         flash("Error: Missing Candidate selection.", "warning")
             
@@ -283,14 +290,21 @@ def mine():
         flash("No votes to mine.", "warning")
         return redirect(url_for('index'))
 
-    last_block = blockchain.last_block
-    proof = blockchain.proof_of_work(last_block['proof'])
-    previous_hash = blockchain.hash(last_block)
-    blockchain.new_block(proof, previous_hash)
-    blockchain.save_state(CHAIN_FILE)
-    
-    log_activity("Block mined", current_user.username)
-    flash("Block mined successfully! Votes are now immutable.", "success")
+    try:
+        last_block = blockchain.last_block
+        proof = blockchain.proof_of_work(last_block['proof'])
+        previous_hash = blockchain.hash(last_block)
+        blockchain.new_block(proof, previous_hash)
+        try:
+            blockchain.save_state(CHAIN_FILE)
+        except Exception as e:
+            print(f"Warning: Could not save blockchain state ({type(e).__name__}), continuing")
+        
+        log_activity("Block mined", current_user.username)
+        flash("Block mined successfully! Votes are now immutable.", "success")
+    except Exception as e:
+        print(f"Error in mine: {type(e).__name__}: {e}")
+        flash("Error mining block. Please try again.", "danger")
     return redirect(url_for('index'))
 
 @app.route('/about', methods=['GET'])
@@ -311,30 +325,34 @@ def validate():
 @app.route('/chart-data')
 @login_required
 def chart_data():
-    vote_counts = blockchain.tally_votes(CANDIDATES)
-    data = {
-        'labels': list(vote_counts.keys()),
-        'datasets': [{
-            'label': 'Votes',
-            'data': list(vote_counts.values()),
-            'backgroundColor': [
-                'rgba(255, 99, 132, 0.8)',
-                'rgba(54, 162, 235, 0.8)',
-                'rgba(255, 205, 86, 0.8)',
-                'rgba(75, 192, 192, 0.8)',
-                'rgba(153, 102, 255, 0.8)'
-            ],
-            'borderColor': [
-                'rgba(255, 99, 132, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 205, 86, 1)',
-                'rgba(75, 192, 192, 1)',
-                'rgba(153, 102, 255, 1)'
-            ],
-            'borderWidth': 1
-        }]
-    }
-    return jsonify(data)
+    try:
+        vote_counts = blockchain.tally_votes(CANDIDATES)
+        data = {
+            'labels': list(vote_counts.keys()),
+            'datasets': [{
+                'label': 'Votes',
+                'data': list(vote_counts.values()),
+                'backgroundColor': [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 205, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)'
+                ],
+                'borderColor': [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 205, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)'
+                ],
+                'borderWidth': 1
+            }]
+        }
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error in chart-data: {type(e).__name__}: {e}")
+        return jsonify({'error': 'Failed to load chart data'}), 500
 
 @app.route('/admin')
 @login_required
@@ -342,18 +360,30 @@ def admin():
     if current_user.username != 'admin':  # Simple admin check
         flash("Access denied.", "danger")
         return redirect(url_for('index'))
-    vote_counts = blockchain.tally_votes(CANDIDATES)
-    total_votes = sum(vote_counts.values())
-    total_blocks = len(blockchain.chain)
-    pending_votes = len(blockchain.pending_votes)
-    vote_history = build_vote_history()
-    activities = get_recent_activities(redact=False)
+    try:
+        vote_counts = blockchain.tally_votes(CANDIDATES)
+        total_votes = sum(vote_counts.values())
+        total_blocks = len(blockchain.chain)
+        pending_votes = len(blockchain.pending_votes)
+        vote_history = build_vote_history()
+        activities = get_recent_activities(redact=False)
+        chain_valid = blockchain.is_chain_valid(blockchain.chain)
+    except Exception as e:
+        print(f"Error in admin: {type(e).__name__}: {e}")
+        vote_counts = {c: 0 for c in CANDIDATES}
+        total_votes = 0
+        total_blocks = 0
+        pending_votes = 0
+        vote_history = []
+        activities = []
+        chain_valid = False
+    
     return render_template('admin.html', 
                            vote_counts=vote_counts, 
                            total_votes=total_votes,
                            total_blocks=total_blocks,
                            pending_votes=pending_votes,
-                           chain_valid=blockchain.is_chain_valid(blockchain.chain),
+                           chain_valid=chain_valid,
                            vote_history=vote_history,
                            activities=activities)
 

@@ -23,12 +23,15 @@ class Blockchain:
 
     def save_state(self, filename):
         """Save blockchain state to JSON file"""
-        data = {
-            'chain': self.chain,
-            'pending_votes': self.pending_votes
-        }
-        with open(filename, 'w') as f:
-            json.dump(data, f, indent=4)
+        try:
+            data = {
+                'chain': self.chain,
+                'pending_votes': self.pending_votes
+            }
+            with open(filename, 'w') as f:
+                json.dump(data, f, indent=4)
+        except Exception as e:
+            print(f"Warning: Could not save blockchain state to {filename} ({type(e).__name__}: {e})")
 
     def new_block(self, proof, previous_hash=None):
         """
