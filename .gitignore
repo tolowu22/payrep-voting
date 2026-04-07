@@ -4,6 +4,8 @@
 # 2. Ignore the Database (Contains user passwords/data)
 users.db
 *.sqlite3
+activity_log.json
+blockchain.json
 
 # 3. Ignore Python System Files (Junk files)
 __pycache__/

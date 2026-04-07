@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | TAT Blockchain Node</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body {
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #141E30);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            color: #333;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .navbar-glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+                <i class="fa-solid fa-cube fa-lg me-2 text-info"></i> 
+                <span style="letter-spacing: 1px;">TAT NODE</span>
+            </a>
+            
+            <div class="d-flex align-items-center">
+                <span class="badge bg-danger me-3">ADMIN</span>
+                <a href="/" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold me-2">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a href="/logout" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold">
+                    <i class="fa-solid fa-power-off"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="text-white fw-bold mb-4">
+                    <i class="fa-solid fa-cog me-3"></i>Admin Control Panel
+                </h1>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="fa-solid fa-vote-yea fa-2x mb-3"></i>
+                    <h3 class="fw-bold">{{ total_votes }}</h3>
+                    <p class="mb-0">Total Votes</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="fa-solid fa-cube fa-2x mb-3"></i>
+                    <h3 class="fw-bold">{{ total_blocks }}</h3>
+                    <p class="mb-0">Blocks Mined</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="fa-solid fa-clock fa-2x mb-3"></i>
+                    <h3 class="fw-bold">{{ pending_votes }}</h3>
+                    <p class="mb-0">Pending Votes</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="fa-solid fa-shield-alt fa-2x mb-3"></i>
+                    <h3 class="fw-bold">
+                        {% if chain_valid %}
+                            <i class="fa-solid fa-check text-success"></i>
+                        {% else %}
+                            <i class="fa-solid fa-times text-danger"></i>
+                        {% endif %}
+                    </h3>
+                    <p class="mb-0">Chain Integrity</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="glass-card p-4">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fa-solid fa-chart-pie me-2 text-primary"></i>Vote Distribution
+                    </h4>
+                    <canvas id="voteChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="glass-card p-4">
+                    <h5 class="fw-bold mb-3">
+                        <i class="fa-solid fa-list me-2 text-warning"></i>Detailed Results
+                    </h5>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        {% for candidate, count in vote_counts.items() %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="fw-bold">{{ candidate }}</span>
+                            <span class="badge bg-primary fs-6">{{ count }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mt-4">
+            <div class="col-12">
+                <div class="glass-card p-4">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fa-solid fa-user-secret me-2 text-secondary"></i>Detailed Vote History
+                    </h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Voter</th>
+                                    <th>Candidate</th>
+                                    <th>Status</th>
+                                    <th>Block</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vote in vote_history %}
+                                <tr>
+                                    <td class="fw-bold text-secondary">{{ vote.voter_id }}</td>
+                                    <td>{{ vote.candidate }}</td>
+                                    <td>
+                                        {% if vote.status == 'Mined' %}
+                                            <span class="badge bg-success">Mined</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ vote.block_index }}</td>
+                                    <td>{{ vote.timestamp }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% if vote_history|length == 0 %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">No votes recorded yet.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="glass-card p-4">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fa-solid fa-tools me-2 text-info"></i>System Actions
+                    </h4>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <a href="/validate" class="btn btn-outline-primary w-100">
+                                <i class="fa-solid fa-shield-halved me-2"></i>Validate Chain
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="/audit" class="btn btn-outline-warning w-100">
+                                <i class="fa-solid fa-search me-2"></i>Tamper Audit
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="/overview" class="btn btn-outline-info w-100">
+                                <i class="fa-solid fa-info-circle me-2"></i>Project Overview
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load chart data
+        fetch('/chart-data')
+            .then(response => response.json())
+            .then(data => {
+                const ctx = document.getElementById('voteChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+            });
+    </script>
+</body>
+</html>

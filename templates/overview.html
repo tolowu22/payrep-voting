@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Overview | TAT Blockchain Voting System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #141E30);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            color: #333;
+        }
+
+        .navbar-glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        .tech-stack {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+                <i class="fa-solid fa-cube fa-lg me-2 text-info"></i> 
+                <span style="letter-spacing: 1px;">TAT NODE</span>
+            </a>
+            
+            <div class="d-flex align-items-center">
+                <span class="badge bg-info me-3">OVERVIEW</span>
+                <a href="/admin" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold me-2">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Admin
+                </a>
+                <a href="/logout" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold">
+                    <i class="fa-solid fa-power-off"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+
+        <div class="row mb-5">
+            <div class="col-12 text-center">
+                <h1 class="text-white fw-bold mb-3">
+                    <i class="fa-solid fa-graduation-cap me-3"></i>Final Year Project
+                </h1>
+                <h2 class="text-white-50 mb-4">Blockchain-Based Voting System</h2>
+                <p class="text-white-75 lead">A secure, transparent, and tamper-proof digital voting platform built with modern web technologies</p>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="glass-card p-4 text-center h-100">
+                    <div class="feature-icon bg-primary text-white mx-auto">
+                        <i class="fa-solid fa-shield-alt fa-2x"></i>
+                    </div>
+                    <h4 class="fw-bold">Security First</h4>
+                    <p class="text-muted">Cryptographic hashing, digital signatures, and proof-of-work ensure vote integrity and prevent tampering.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-4 text-center h-100">
+                    <div class="feature-icon bg-success text-white mx-auto">
+                        <i class="fa-solid fa-link fa-2x"></i>
+                    </div>
+                    <h4 class="fw-bold">Immutable Ledger</h4>
+                    <p class="text-muted">Once votes are mined into blocks, they become permanently recorded and cannot be altered.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-4 text-center h-100">
+                    <div class="feature-icon bg-warning text-white mx-auto">
+                        <i class="fa-solid fa-eye fa-2x"></i>
+                    </div>
+                    <h4 class="fw-bold">Transparent</h4>
+                    <p class="text-muted">Complete audit trail with real-time validation and tamper detection capabilities.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-lg-6">
+                <div class="glass-card p-4">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fa-solid fa-code me-2 text-primary"></i>Technical Architecture
+                    </h4>
+                    <div class="tech-stack">
+                        <strong>Backend:</strong> Python Flask with SQLite database
+                    </div>
+                    <div class="tech-stack">
+                        <strong>Blockchain:</strong> Custom proof-of-work implementation
+                    </div>
+                    <div class="tech-stack">
+                        <strong>Frontend:</strong> Bootstrap 5, Chart.js, Font Awesome
+                    </div>
+                    <div class="tech-stack">
+                        <strong>Security:</strong> HMAC digital signatures, SHA-256 hashing
+                    </div>
+                    <div class="tech-stack">
+                        <strong>Deployment:</strong> Vercel serverless platform
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="glass-card p-4">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fa-solid fa-list-check me-2 text-success"></i>Key Features
+                    </h4>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fa-solid fa-check text-success me-2"></i>User authentication with session management</li>
+                        <li class="mb-2"><i class="fa-solid fa-check text-success me-2"></i>Real-time vote tallying and visualization</li>
+                        <li class="mb-2"><i class="fa-solid fa-check text-success me-2"></i>Admin dashboard with system statistics</li>
+                        <li class="mb-2"><i class="fa-solid fa-check text-success me-2"></i>Comprehensive tamper audit system</li>
+                        <li class="mb-2"><i class="fa-solid fa-check text-success me-2"></i>Activity logging for audit trails</li>
+                        <li class="mb-2"><i class="fa-solid fa-check text-success me-2"></i>Responsive design for all devices</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card p-4 mb-5">
+            <h4 class="fw-bold mb-4 text-center">
+                <i class="fa-solid fa-diagram-project me-2 text-info"></i>System Workflow
+            </h4>
+            <div class="row text-center">
+                <div class="col-md-2">
+                    <div class="feature-icon bg-primary text-white mx-auto">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </div>
+                    <h6>Register</h6>
+                </div>
+                <div class="col-md-2">
+                    <div class="feature-icon bg-info text-white mx-auto">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                    </div>
+                    <h6>Login</h6>
+                </div>
+                <div class="col-md-2">
+                    <div class="feature-icon bg-warning text-white mx-auto">
+                        <i class="fa-solid fa-check-to-slot"></i>
+                    </div>
+                    <h6>Vote</h6>
+                </div>
+                <div class="col-md-2">
+                    <div class="feature-icon bg-success text-white mx-auto">
+                        <i class="fa-solid fa-hammer"></i>
+                    </div>
+                    <h6>Mine</h6>
+                </div>
+                <div class="col-md-2">
+                    <div class="feature-icon bg-secondary text-white mx-auto">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h6>Validate</h6>
+                </div>
+                <div class="col-md-2">
+                    <div class="feature-icon bg-danger text-white mx-auto">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <h6>Results</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="glass-card p-4">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fa-solid fa-graduation-cap me-2 text-warning"></i>Educational Value
+                    </h4>
+                    <p class="text-muted mb-3">This project demonstrates practical application of:</p>
+                    <ul class="text-muted">
+                        <li>Blockchain technology and consensus mechanisms</li>
+                        <li>Cryptographic security principles</li>
+                        <li>Full-stack web development</li>
+                        <li>Database design and management</li>
+                        <li>API design and RESTful services</li>
+                        <li>Cloud deployment and DevOps</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="glass-card p-4">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fa-solid fa-rocket me-2 text-success"></i>Future Enhancements
+                    </h4>
+                    <p class="text-muted mb-3">Potential improvements for production use:</p>
+                    <ul class="text-muted">
+                        <li>Multi-node distributed consensus</li>
+                        <li>Advanced cryptographic voting schemes</li>
+                        <li>Real-time WebSocket updates</li>
+                        <li>Integration with government ID systems</li>
+                        <li>Mobile application development</li>
+                        <li>Advanced analytics and reporting</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

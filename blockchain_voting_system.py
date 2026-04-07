@@ -1,13 +1,34 @@
 import hashlib
 import json
+import hmac
 from time import time
 
 class Blockchain:
-    def __init__(self):
-        self.chain = []
-        self.pending_votes = []
-        # Create the genesis block (the first block in the chain)
-        self.new_block(previous_hash='1', proof=100)
+    def __init__(self, chain=None, pending_votes=None):
+        self.chain = chain if chain is not None else []
+        self.pending_votes = pending_votes if pending_votes is not None else []
+        if not self.chain:
+            # Create the genesis block when no chain exists yet.
+            self.new_block(previous_hash='1', proof=100)
+
+    @classmethod
+    def load_state(cls, filename):
+        """Load blockchain state from JSON file"""
+        try:
+            with open(filename, 'r') as f:
+                data = json.load(f)
+                return cls(chain=data.get('chain', []), pending_votes=data.get('pending_votes', []))
+        except (FileNotFoundError, json.JSONDecodeError):
+            return cls()
+
+    def save_state(self, filename):
+        """Save blockchain state to JSON file"""
+        data = {
+            'chain': self.chain,
+            'pending_votes': self.pending_votes
+        }
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=4)
 
     def new_block(self, proof, previous_hash=None):
         """
@@ -39,11 +60,30 @@ class Blockchain:
         # SECURITY CHECK: Prevent Double Voting
         if self.has_voted(voter_id):
             return False
-        self.pending_votes.append({
+        vote_data = {
             'voter_id': voter_id,
             'candidate': candidate,
-        })
+            'timestamp': time(),
+        }
+        # Add digital signature
+        vote_data['signature'] = self.sign_vote(vote_data)
+        self.pending_votes.append(vote_data)
         return self.last_block['index'] + 1
+
+    def sign_vote(self, vote_data):
+        """Create a digital signature for the vote"""
+        secret_key = b'blockchain_voting_secret_key'  # In production, use proper key management
+        message = json.dumps(vote_data, sort_keys=True).encode()
+        return hmac.new(secret_key, message, hashlib.sha256).hexdigest()
+
+    def verify_vote_signature(self, vote):
+        """Verify the digital signature of a vote"""
+        signature = vote.pop('signature', None)
+        if not signature:
+            return False
+        expected_signature = self.sign_vote(vote)
+        vote['signature'] = signature  # Restore
+        return hmac.compare_digest(signature, expected_signature)
 
     @property
     def last_block(self):
@@ -121,26 +161,21 @@ class Blockchain:
             current_index += 1
         return True
 
+    @classmethod
+    def load_from_file(cls, filename):
+        """Load blockchain state from JSON file"""
+        try:
+            with open(filename, 'r') as f:
+                data = json.load(f)
+                return cls(chain=data.get('chain', []), pending_votes=data.get('pending_votes', []))
+        except (FileNotFoundError, json.JSONDecodeError):
+            return cls()
 
-# --- DRIVER CODE (To test it works) ---
-print("Starting the Voting Blockchain...")
-blockchain = Blockchain()
-
-# 1. Add some votes
-print("Adding votes...")
-blockchain.new_vote("Voter123", "Candidate A")
-blockchain.new_vote("Voter456", "Candidate B")
-blockchain.new_vote("Voter789", "Candidate A")
-
-# 2. Mine a block (Seal these votes into the chain)
-print("Mining block (calculating proof of work)...")
-last_block = blockchain.last_block
-last_proof = last_block['proof']
-proof = blockchain.proof_of_work(last_proof)
-
-# 3. Add the block to the chain
-previous_hash = blockchain.hash(last_block)
-block = blockchain.new_block(proof, previous_hash)
-
-print("\n--- Blockchain Status ---")
-print(json.dumps(blockchain.chain, indent=4))
+    def save_to_file(self, filename):
+        """Save blockchain state to JSON file"""
+        data = {
+            'chain': self.chain,
+            'pending_votes': self.pending_votes
+        }
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=4)
