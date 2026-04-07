@@ -75,20 +75,24 @@ ACTIVITY_LOG_FILE = os.path.join(DATA_DIR, 'activity_log.json')
 def log_activity(action, user, details=""):
     """Log user activities for audit trail"""
     try:
-        with open(ACTIVITY_LOG_FILE, 'r') as f:
-            logs = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        logs = []
-    
-    logs.append({
-        'timestamp': time(),
-        'action': action,
-        'user': user,
-        'details': details
-    })
-    
-    with open(ACTIVITY_LOG_FILE, 'w') as f:
-        json.dump(logs, f, indent=4)
+        os.makedirs(DATA_DIR, exist_ok=True)
+        try:
+            with open(ACTIVITY_LOG_FILE, 'r') as f:
+                logs = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            logs = []
+        
+        logs.append({
+            'timestamp': time(),
+            'action': action,
+            'user': user,
+            'details': details
+        })
+        
+        with open(ACTIVITY_LOG_FILE, 'w') as f:
+            json.dump(logs, f, indent=4)
+    except Exception as e:
+        print(f"Warning: Activity log failed ({type(e).__name__}: {e}), continuing anyway")
 
 def get_recent_activities(limit=10, redact=False):
     """Get recent activities for display, redacting private details for non-admin users."""
@@ -167,7 +171,11 @@ def load_candidates(filename='names.txt'):
         return ["Candidate A", "Candidate B"]
 
 CANDIDATES = load_candidates()
-blockchain = Blockchain.load_state(CHAIN_FILE)
+try:
+    blockchain = Blockchain.load_state(CHAIN_FILE)
+except Exception as e:
+    print(f"Warning: Could not load blockchain state ({type(e).__name__}), starting fresh")
+    blockchain = Blockchain()
 
 # --- 3. REQUEST HOOKS ---
 @app.before_request
@@ -233,13 +241,20 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    vote_counts = blockchain.tally_votes(CANDIDATES)
+    try:
+        vote_counts = blockchain.tally_votes(CANDIDATES)
+        chain_valid = blockchain.is_chain_valid(blockchain.chain)
+    except Exception as e:
+        print(f"Error in index: {type(e).__name__}: {e}")
+        vote_counts = {c: 0 for c in CANDIDATES}
+        chain_valid = False
+    
     return render_template('index.html', 
                            chain=blockchain.chain, 
                            pending=blockchain.pending_votes,
                            candidates=CANDIDATES,
                            vote_counts=vote_counts,
-                           chain_valid=blockchain.is_chain_valid(blockchain.chain),
+                           chain_valid=chain_valid,
                            user=current_user)
 
 @app.route('/vote', methods=['POST'])
@@ -361,6 +376,9 @@ def not_found(error):
 
 @app.errorhandler(500)
 def internal_error(error):
+    import traceback
+    print(f"500 Error: {error}")
+    traceback.print_exc()
     return "Internal server error", 500
 
 if __name__ == '__main__':
