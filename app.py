@@ -97,8 +97,13 @@ def log_activity(action, user, details=""):
 def get_recent_activities(limit=10, redact=False):
     """Get recent activities for display, redacting private details for non-admin users."""
     try:
-        with open(ACTIVITY_LOG_FILE, 'r') as f:
-            logs = json.load(f)
+        os.makedirs(DATA_DIR, exist_ok=True)
+        try:
+            with open(ACTIVITY_LOG_FILE, 'r') as f:
+                logs = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+        
         processed = []
         for log in logs:
             entry = {
@@ -120,31 +125,36 @@ def get_recent_activities(limit=10, redact=False):
                     entry['details'] = entry['details'] or 'System activity recorded.'
             processed.append(entry)
         return processed[-limit:][::-1]  # Last 10, reversed (newest first)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except Exception as e:
+        print(f"Error in get_recent_activities: {type(e).__name__}: {e}")
         return []
 
 
 def build_vote_history():
     """Build detailed vote history for admin review."""
-    history = []
-    for block in blockchain.chain:
-        for vote in block.get('votes', []):
+    try:
+        history = []
+        for block in blockchain.chain:
+            for vote in block.get('votes', []):
+                history.append({
+                    'voter_id': vote.get('voter_id'),
+                    'candidate': vote.get('candidate'),
+                    'block_index': block.get('index'),
+                    'status': 'Mined',
+                    'timestamp': datetime.fromtimestamp(vote.get('timestamp', time())).strftime('%Y-%m-%d %H:%M:%S')
+                })
+        for vote in blockchain.pending_votes:
             history.append({
                 'voter_id': vote.get('voter_id'),
                 'candidate': vote.get('candidate'),
-                'block_index': block.get('index'),
-                'status': 'Mined',
+                'block_index': 'Pending',
+                'status': 'Pending',
                 'timestamp': datetime.fromtimestamp(vote.get('timestamp', time())).strftime('%Y-%m-%d %H:%M:%S')
             })
-    for vote in blockchain.pending_votes:
-        history.append({
-            'voter_id': vote.get('voter_id'),
-            'candidate': vote.get('candidate'),
-            'block_index': 'Pending',
-            'status': 'Pending',
-            'timestamp': datetime.fromtimestamp(vote.get('timestamp', time())).strftime('%Y-%m-%d %H:%M:%S')
-        })
-    return sorted(history, key=lambda x: x['timestamp'], reverse=True)
+        return sorted(history, key=lambda x: x['timestamp'], reverse=True)
+    except Exception as e:
+        print(f"Error in build_vote_history: {type(e).__name__}: {e}")
+        return []
 class User(UserMixin):
     def __init__(self, id, username, password):
         self.id = id
@@ -191,19 +201,23 @@ def register():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        with sqlite3.connect(DB_NAME) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-            if cursor.fetchone():
-                flash("Username already taken.", "danger")
-            else:
-                # Hash password before saving
-                hashed_pw = generate_password_hash(password, method='scrypt')
-                cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pw))
-                conn.commit()
-                log_activity("User registered", username)
-                flash("Account created! Please login.", "success")
-                return redirect(url_for('login'))
+        try:
+            with sqlite3.connect(DB_NAME) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+                if cursor.fetchone():
+                    flash("Username already taken.", "danger")
+                else:
+                    # Hash password before saving
+                    hashed_pw = generate_password_hash(password, method='scrypt')
+                    cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pw))
+                    conn.commit()
+                    log_activity("User registered", username)
+                    flash("Account created! Please login.", "success")
+                    return redirect(url_for('login'))
+        except Exception as e:
+            print(f"Error in register: {type(e).__name__}: {e}")
+            flash("Registration service temporarily unavailable. Please try again.", "danger")
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -212,30 +226,37 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        with sqlite3.connect(DB_NAME) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-            user_data = cursor.fetchone()
-            
-            if user_data and check_password_hash(user_data[2], password):
-                user_obj = User(id=user_data[0], username=user_data[1], password=user_data[2])
-                login_user(user_obj)
+        try:
+            with sqlite3.connect(DB_NAME) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+                user_data = cursor.fetchone()
                 
-                # Activate 5-minute timer
-                session.permanent = True
-                
-                log_activity("User logged in", username)
-                flash(f"Welcome back, {username}!", "success")
-                return redirect(url_for('index'))
-            else:
-                flash("Invalid username or password.", "danger")
+                if user_data and check_password_hash(user_data[2], password):
+                    user_obj = User(id=user_data[0], username=user_data[1], password=user_data[2])
+                    login_user(user_obj)
+                    
+                    # Activate 5-minute timer
+                    session.permanent = True
+                    
+                    log_activity("User logged in", username)
+                    flash(f"Welcome back, {username}!", "success")
+                    return redirect(url_for('index'))
+                else:
+                    flash("Invalid username or password.", "danger")
+        except Exception as e:
+            print(f"Error in login: {type(e).__name__}: {e}")
+            flash("Login service temporarily unavailable. Please try again.", "danger")
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
-    logout_user()
-    flash("You have been logged out.", "info")
+    try:
+        logout_user()
+        flash("You have been logged out.", "info")
+    except Exception as e:
+        print(f"Error in logout: {type(e).__name__}: {e}")
     return redirect(url_for('login'))
 
 @app.route('/')
@@ -314,12 +335,16 @@ def about():
 @app.route('/validate', methods=['GET'])
 @login_required
 def validate():
-    if blockchain.is_chain_valid(blockchain.chain):
-        log_activity("Chain validation passed", current_user.username)
-        flash("System Secure: Blockchain integrity verified.", "success")
-    else:
-        log_activity("Chain validation failed", current_user.username)
-        flash("SECURITY ALERT: Blockchain has been tampered with!", "danger")
+    try:
+        if blockchain.is_chain_valid(blockchain.chain):
+            log_activity("Chain validation passed", current_user.username)
+            flash("System Secure: Blockchain integrity verified.", "success")
+        else:
+            log_activity("Chain validation failed", current_user.username)
+            flash("SECURITY ALERT: Blockchain has been tampered with!", "danger")
+    except Exception as e:
+        print(f"Error in validate: {type(e).__name__}: {e}")
+        flash("Validation service temporarily unavailable.", "warning")
     return redirect(url_for('index'))
 
 @app.route('/chart-data')
@@ -390,11 +415,15 @@ def admin():
 @app.route('/audit')
 @login_required
 def audit():
-    tampered_blocks = []
-    for i, block in enumerate(blockchain.chain):
-        if i > 0:
-            if block['previous_hash'] != blockchain.hash(blockchain.chain[i-1]):
-                tampered_blocks.append(i)
+    try:
+        tampered_blocks = []
+        for i, block in enumerate(blockchain.chain):
+            if i > 0:
+                if block['previous_hash'] != blockchain.hash(blockchain.chain[i-1]):
+                    tampered_blocks.append(i)
+    except Exception as e:
+        print(f"Error in audit: {type(e).__name__}: {e}")
+        tampered_blocks = []
     return render_template('audit.html', tampered_blocks=tampered_blocks, chain=blockchain.chain)
 
 @app.route('/overview')
