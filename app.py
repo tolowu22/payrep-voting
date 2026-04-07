@@ -31,34 +31,44 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.getenv('TMPDIR') or os.getenv('TEMP') or os.getenv('TMP') or '/tmp'
 if not os.path.isabs(DATA_DIR):
     DATA_DIR = os.path.join(BASE_DIR, DATA_DIR)
-os.makedirs(DATA_DIR, exist_ok=True)
 
 DB_NAME = os.path.join(DATA_DIR, 'users.db')
 CHAIN_FILE = os.path.join(DATA_DIR, 'blockchain.json')
+_db_initialized = False
 
-def init_db():
-    """Creates the User table if it doesn't exist"""
-    with sqlite3.connect(DB_NAME) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL
-            )
-        ''')
-        conn.commit()
+def ensure_db():
+    """Lazy initialization of database. Only creates tables if needed."""
+    global _db_initialized
+    if _db_initialized:
+        return
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL
+                )
+            ''')
+            conn.commit()
+        
+        # Create admin user if not exists
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE username = 'admin'")
+            if not cursor.fetchone():
+                hashed_pw = generate_password_hash('admin123', method='scrypt')
+                cursor.execute("INSERT INTO users (username, password) VALUES ('admin', ?)", (hashed_pw,))
+                conn.commit()
+        
+        _db_initialized = True
+    except Exception as e:
+        print(f"Warning: DB initialization deferred ({type(e).__name__}), will retry on next request")
 
-init_db() # Run once on startup
-
-# Create admin user if not exists
-with sqlite3.connect(DB_NAME) as conn:
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = 'admin'")
-    if not cursor.fetchone():
-        hashed_pw = generate_password_hash('admin123', method='scrypt')
-        cursor.execute("INSERT INTO users (username, password) VALUES ('admin', ?)", (hashed_pw,))
-        conn.commit()
+# Initialize database on startup, but don't crash if it fails
+ensure_db()
 
 ACTIVITY_LOG_FILE = os.path.join(DATA_DIR, 'activity_log.json')
 
@@ -158,6 +168,12 @@ def load_candidates(filename='names.txt'):
 
 CANDIDATES = load_candidates()
 blockchain = Blockchain.load_state(CHAIN_FILE)
+
+# --- 3. REQUEST HOOKS ---
+@app.before_request
+def before_request():
+    """Ensure database is initialized before each request"""
+    ensure_db()
 
 # --- 4. ROUTES ---
 
