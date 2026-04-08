@@ -127,14 +127,20 @@ def send_verification_email(recipient_email, verify_link):
     message.attach(part2)
 
     try:
-        # Secure SSL connection (Port 465 is standard for Gmail SSL)
-        context = ssl.create_default_context()
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, recipient_email, message.as_string())
+        # Using Port 587 (TLS) instead of 465 (SSL)
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.ehlo()
+        server.starttls() # This line secures the connection
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, recipient_email, message.as_string())
+        server.quit()
         return True
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        # This will print the EXACT reason it failed in your terminal
+        print(f"\n" + "!"*50)
+        print(f"EMAIL FAILED TO SEND. ERROR DETAILS:")
+        print(f"{e}")
+        print("!"*50 + "\n")
         return False
 
 ACTIVITY_LOG_FILE = os.path.join(DATA_DIR, 'activity_log.json')
