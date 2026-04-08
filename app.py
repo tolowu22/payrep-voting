@@ -180,6 +180,16 @@ def load_candidates(filename='names.txt'):
     except FileNotFoundError:
         return ["Candidate A", "Candidate B"]
 
+def validate_voter_id(voter_id):
+    """Validate voter ID format and range (01-50000, numeric only)"""
+    try:
+        id_int = int(voter_id)
+        if id_int < 1 or id_int > 50000:
+            return False, "Voter ID must be between 01 and 50000."
+        return True, ""
+    except ValueError:
+        return False, "Voter ID must be numeric (e.g., 10018, 30001)."
+
 CANDIDATES = load_candidates()
 try:
     blockchain = Blockchain.load_state(CHAIN_FILE)
@@ -201,12 +211,18 @@ def register():
         username = request.form.get('username')
         password = request.form.get('password')
         
+        # Validate voter ID format and range
+        is_valid, error_msg = validate_voter_id(username)
+        if not is_valid:
+            flash(f"Registration failed: {error_msg}", "danger")
+            return render_template('register.html')
+        
         try:
             with sqlite3.connect(DB_NAME) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
                 if cursor.fetchone():
-                    flash("Username already taken.", "danger")
+                    flash("Voter ID already registered.", "danger")
                 else:
                     # Hash password before saving
                     hashed_pw = generate_password_hash(password, method='scrypt')
@@ -226,6 +242,12 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
+        # Validate voter ID format and range
+        is_valid, error_msg = validate_voter_id(username)
+        if not is_valid:
+            flash(f"Login failed: {error_msg}", "danger")
+            return render_template('login.html')
+        
         try:
             with sqlite3.connect(DB_NAME) as conn:
                 cursor = conn.cursor()
@@ -243,7 +265,7 @@ def login():
                     flash(f"Welcome back, {username}!", "success")
                     return redirect(url_for('index'))
                 else:
-                    flash("Invalid username or password.", "danger")
+                    flash("Invalid voter ID or password.", "danger")
         except Exception as e:
             print(f"Error in login: {type(e).__name__}: {e}")
             flash("Login service temporarily unavailable. Please try again.", "danger")
