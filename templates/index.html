@@ -196,6 +196,13 @@
                         <span class="badge bg-primary rounded-pill">Secure</span>
                     </div>
                     <div class="card-body p-4">
+                        {% if user.username == 'admin' %}
+                        <div class="alert alert-warning border-0 bg-warning bg-opacity-10 p-4 text-center rounded-3">
+                            <i class="fa-solid fa-ban fa-2x text-warning mb-3 d-block"></i>
+                            <h5 class="fw-bold text-dark mb-2">Voting Not Allowed</h5>
+                            <p class="text-muted small mb-0">Administrators are not permitted to vote in this system. You have access to the admin dashboard for system oversight.</p>
+                        </div>
+                        {% else %}
                         <form action="/vote" method="POST">
                             <div class="mb-4">
                                 <label class="form-label text-uppercase text-muted small fw-bold">Verified Identity</label>
@@ -219,6 +226,7 @@
                                 <i class="fa-solid fa-paper-plane me-2"></i> CAST VOTE
                             </button>
                         </form>
+                        {% endif %}
 
                         <hr class="my-4 text-muted">
 

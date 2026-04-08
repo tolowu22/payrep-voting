@@ -284,6 +284,21 @@ def vote():
     voter_id = current_user.username
     candidate = request.form.get('candidate')
     
+    # Admin check: Admins cannot vote
+    if current_user.username == 'admin':
+        flash("Administrators are not permitted to vote in this system.", "warning")
+        return redirect(url_for('index'))
+    
+    # Validate voter ID format and range (01-50000)
+    try:
+        voter_id_int = int(voter_id)
+        if voter_id_int < 1 or voter_id_int > 50000:
+            flash(f"Invalid ID format or length. Voter ID must be between 01 and 50000.", "danger")
+            return redirect(url_for('index'))
+    except ValueError:
+        flash(f"Invalid ID format or length. Voter ID must be numeric between 01 and 50000.", "danger")
+        return redirect(url_for('index'))
+    
     if candidate:
         try:
             success = blockchain.new_vote(voter_id, candidate)
