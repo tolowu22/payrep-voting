@@ -1,3 +1,8 @@
+import uuid
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import ssl
 from flask import Flask, render_template, request, redirect, url_for, flash, get_flashed_messages, session, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -36,6 +41,7 @@ DB_NAME = os.path.join(DATA_DIR, 'users.db')
 CHAIN_FILE = os.path.join(DATA_DIR, 'blockchain.json')
 _db_initialized = False
 
+
 def ensure_db():
     """Lazy initialization of database. Only creates tables if needed."""
     global _db_initialized
@@ -49,9 +55,21 @@ def ensure_db():
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL
+                    password TEXT NOT NULL,
+                    email TEXT UNIQUE,
+                    is_verified INTEGER DEFAULT 0,
+                    verification_token TEXT
                 )
             ''')
+            
+            # Auto-migrate existing databases to include new columns
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN email TEXT UNIQUE")
+                cursor.execute("ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0")
+                cursor.execute("ALTER TABLE users ADD COLUMN verification_token TEXT")
+            except sqlite3.OperationalError:
+                pass # Columns already exist
+                
             conn.commit()
         
         # Create admin user if not exists
@@ -60,7 +78,7 @@ def ensure_db():
             cursor.execute("SELECT * FROM users WHERE username = 'admin'")
             if not cursor.fetchone():
                 hashed_pw = generate_password_hash('admin123', method='scrypt')
-                cursor.execute("INSERT INTO users (username, password) VALUES ('admin', ?)", (hashed_pw,))
+                cursor.execute("INSERT INTO users (username, password, email, is_verified) VALUES ('admin', ?, 'admin@tat.node', 1)", (hashed_pw,))
                 conn.commit()
         
         _db_initialized = True
@@ -69,6 +87,55 @@ def ensure_db():
 
 # Initialize database on startup, but don't crash if it fails
 ensure_db()
+
+def send_verification_email(recipient_email, verify_link):
+    """Sends a real verification email using SMTP."""
+    sender_email = os.getenv('MAIL_USERNAME')
+    sender_password = os.getenv('MAIL_PASSWORD')
+    
+    if not sender_email or not sender_password:
+        print("ERROR: Mail credentials not found in .env")
+        return False
+
+    message = MIMEMultipart("alternative")
+    message["Subject"] = "Verify your TAT Node Identity"
+    message["From"] = sender_email
+    message["To"] = recipient_email
+
+    # Plain text version
+    text = f"Welcome to TAT Node!\n\nPlease verify your account by clicking the following link:\n{verify_link}"
+    
+    # HTML version for better formatting
+    html = f"""\
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+            <h2 style="color: #090979;">Welcome to TAT Node!</h2>
+            <p>Your blockchain identity has been reserved. To complete your registration and enter the polling station, please verify your email address.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{verify_link}" style="background-color: #38ef7d; color: white; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold;">Verify My Account</a>
+            </div>
+            <p style="font-size: 0.8em; color: #777;">If the button doesn't work, copy and paste this link into your browser:<br>{verify_link}</p>
+        </div>
+      </body>
+    </html>
+    """
+
+    part1 = MIMEText(text, "plain")
+    part2 = MIMEText(html, "html")
+    message.attach(part1)
+    message.attach(part2)
+
+    try:
+        # Secure SSL connection (Port 465 is standard for Gmail SSL)
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, message.as_string())
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
 
 ACTIVITY_LOG_FILE = os.path.join(DATA_DIR, 'activity_log.json')
 
@@ -181,15 +248,15 @@ def load_candidates(filename='names.txt'):
         return ["Candidate A", "Candidate B"]
 
 def validate_voter_id(voter_id):
-    """Validate voter ID format and range (01-50000, numeric only)"""
+    """Validate voter ID format silently"""
     try:
         id_int = int(voter_id)
         if id_int < 1 or id_int > 50000:
-            return False, "Voter ID must be between 01 and 50000."
+            return False, "Invalid Voter ID."
         return True, ""
     except ValueError:
-        return False, "Voter ID must be numeric (e.g., 10018, 30001)."
-
+        return False, "Invalid Voter ID."
+    
 CANDIDATES = load_candidates()
 try:
     blockchain = Blockchain.load_state(CHAIN_FILE)
@@ -204,14 +271,14 @@ def before_request():
     ensure_db()
 
 # --- 4. ROUTES ---
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        email = request.form.get('email')
         
-        # Validate voter ID format and range
+        # Validate voter ID format silently
         is_valid, error_msg = validate_voter_id(username)
         if not is_valid:
             flash(f"Registration failed: {error_msg}", "danger")
@@ -220,21 +287,53 @@ def register():
         try:
             with sqlite3.connect(DB_NAME) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+                cursor.execute("SELECT * FROM users WHERE username = ? OR email = ?", (username, email))
                 if cursor.fetchone():
-                    flash("Voter ID already registered.", "danger")
+                    flash("Voter ID or Email is already registered.", "danger")
                 else:
-                    # Hash password before saving
                     hashed_pw = generate_password_hash(password, method='scrypt')
-                    cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pw))
+                    token = str(uuid.uuid4())
+                    
+                    cursor.execute("INSERT INTO users (username, password, email, is_verified, verification_token) VALUES (?, ?, ?, 0, ?)", 
+                                   (username, hashed_pw, email, token))
                     conn.commit()
                     log_activity("User registered", username)
-                    flash("Account created! Please login.", "success")
+                    
+                    # --- SEND REAL EMAIL ---
+                    verify_link = url_for('verify_email', token=token, _external=True)
+                    email_sent = send_verification_email(email, verify_link)
+                    
+                    if email_sent:
+                        flash("Account created! Please check your email inbox to verify your identity.", "success")
+                    else:
+                        flash("Account created, but we couldn't send the verification email. Please contact support.", "warning")
+                        
                     return redirect(url_for('login'))
         except Exception as e:
             print(f"Error in register: {type(e).__name__}: {e}")
             flash("Registration service temporarily unavailable. Please try again.", "danger")
     return render_template('register.html')
+
+@app.route('/verify/<token>')
+def verify_email(token):
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM users WHERE verification_token = ?", (token,))
+            user = cursor.fetchone()
+            
+            if user:
+                # Mark as verified and clear the token
+                cursor.execute("UPDATE users SET is_verified = 1, verification_token = NULL WHERE id = ?", (user[0],))
+                conn.commit()
+                flash("Identity verified successfully! You can now enter the polling station.", "success")
+            else:
+                flash("Invalid or expired verification link.", "danger")
+    except Exception as e:
+        print(f"Error in verify: {type(e).__name__}: {e}")
+        flash("Verification service unavailable.", "danger")
+        
+    return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -242,7 +341,6 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # Validate voter ID format and range
         is_valid, error_msg = validate_voter_id(username)
         if not is_valid:
             flash(f"Login failed: {error_msg}", "danger")
@@ -251,21 +349,26 @@ def login():
         try:
             with sqlite3.connect(DB_NAME) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+                # Fetch id, username, password, and is_verified status
+                cursor.execute("SELECT id, username, password, is_verified FROM users WHERE username = ?", (username,))
                 user_data = cursor.fetchone()
                 
                 if user_data and check_password_hash(user_data[2], password):
+                    
+                    # Prevent login if email is not verified
+                    if user_data[3] == 0: 
+                        flash("Access Denied: Please verify your email address before logging in.", "warning")
+                        return render_template('login.html')
+
                     user_obj = User(id=user_data[0], username=user_data[1], password=user_data[2])
                     login_user(user_obj)
                     
-                    # Activate 5-minute timer
                     session.permanent = True
-                    
                     log_activity("User logged in", username)
                     flash(f"Welcome back, {username}!", "success")
                     return redirect(url_for('index'))
                 else:
-                    flash("Invalid voter ID or password.", "danger")
+                    flash("Invalid credentials.", "danger")
         except Exception as e:
             print(f"Error in login: {type(e).__name__}: {e}")
             flash("Login service temporarily unavailable. Please try again.", "danger")
@@ -311,16 +414,16 @@ def vote():
         flash("Administrators are not permitted to vote in this system.", "warning")
         return redirect(url_for('index'))
     
-    # Validate voter ID format and range (01-50000)
+ # Validate voter ID format silently
     try:
         voter_id_int = int(voter_id)
         if voter_id_int < 1 or voter_id_int > 50000:
-            flash(f"Invalid ID format or length. Voter ID must be between 01 and 50000.", "danger")
+            flash("Invalid Voter Identity.", "danger")
             return redirect(url_for('index'))
     except ValueError:
-        flash(f"Invalid ID format or length. Voter ID must be numeric between 01 and 50000.", "danger")
+        flash("Invalid Voter Identity.", "danger")
         return redirect(url_for('index'))
-    
+       
     if candidate:
         try:
             success = blockchain.new_vote(voter_id, candidate)
