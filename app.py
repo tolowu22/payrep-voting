@@ -405,24 +405,21 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/')
-@login_required # Keep this if you have it
+@login_required
 def index():
-    # 1. Find the original DB and define the Vercel /tmp path
+    # 1. Vercel-Safe /tmp Database Logic
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     original_db = os.path.join(BASE_DIR, 'users.db')
     tmp_db = '/tmp/users.db'
 
-    # 2. If the DB isn't in /tmp yet, copy it there. 
-    # If it doesn't exist at all, SQLite will make a fresh one.
     if not os.path.exists(tmp_db) and os.path.exists(original_db):
+        import shutil
         shutil.copy2(original_db, tmp_db)
 
-    # 3. Connect to the Writable /tmp database!
     conn = sqlite3.connect(tmp_db)
     cursor = conn.cursor()
     
     try:
-        # Just in case Vercel created a totally blank DB, ensure the table exists
         cursor.execute('''CREATE TABLE IF NOT EXISTS candidates (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             name TEXT NOT NULL,
@@ -434,24 +431,33 @@ def index():
         
     conn.close()
 
-    # 4. GET THE VOTE COUNTS
-    # --- GET THE VOTE COUNTS FROM THE BLOCKCHAIN ---
+    # 2. GATHER BLOCKCHAIN DATA
+    chain = blockchain.chain
+    pending = blockchain.pending_votes
+
+    # 3. TALLY VOTES (MEMPOOL + CHAIN)
     vote_counts = {}
     
-    # Loop through every block in your blockchain
-    for block in blockchain.chain:
-        # Check every transaction (vote) inside the block
-        # Note: If your code uses the word 'transactions' instead of 'votes', change it below!
+    # Tally mined votes
+    for block in chain:
         for vote in block.get('votes', []): 
             candidate = vote.get('candidate')
             if candidate:
-                # Add 1 to this candidate's total
                 vote_counts[candidate] = vote_counts.get(candidate, 0) + 1
 
-    # Now pass the real vote_counts to the template
-    return render_template('index.html', candidates=candidates, user=current_user, vote_counts=vote_counts)
-    # 5. PASS VOTE_COUNTS TO THE TEMPLATE!
-    return render_template('index.html', candidates=candidates, user=current_user, vote_counts=vote_counts)
+    # Tally pending votes (so the UI updates immediately after voting!)
+    for vote in pending:
+        candidate = vote.get('candidate')
+        if candidate:
+            vote_counts[candidate] = vote_counts.get(candidate, 0) + 1
+
+    # 4. PASS ALL VARIABLES TO THE TEMPLATE
+    return render_template('index.html', 
+                           candidates=candidates, 
+                           user=current_user, 
+                           vote_counts=vote_counts,
+                           chain=chain,
+                           pending=pending)
 
 @app.route('/vote', methods=['POST'])
 @login_required
@@ -625,7 +631,7 @@ def admin_dashboard():
         flash("Unauthorized access.", "danger")
         return redirect(url_for('index'))
 
-    # Vercel-Safe /tmp Database Logic
+    # Vercel-Safe /tmp Database Logic for Candidates
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     original_db = os.path.join(BASE_DIR, 'users.db')
     tmp_db = '/tmp/users.db'
@@ -638,11 +644,6 @@ def admin_dashboard():
     cursor = conn.cursor()
     
     try:
-        # Ensure table exists so Vercel doesn't crash if it just woke up
-        cursor.execute('''CREATE TABLE IF NOT EXISTS candidates (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            name TEXT NOT NULL,
-                            party TEXT NOT NULL)''')
         cursor.execute("SELECT * FROM candidates")
         candidates = cursor.fetchall()
     except sqlite3.OperationalError:
@@ -650,8 +651,35 @@ def admin_dashboard():
         
     conn.close()
 
-    return render_template('admin_dashboard.html', candidates=candidates)
+    # --- BLOCKCHAIN DATA GATHERING ---
+    chain = blockchain.chain
+    pending = blockchain.pending_votes # Fixed attribute name!
+    
+    # --- TALLY VOTES (MEMPOOL + CHAIN) ---
+    vote_counts = {}
+    total_votes = 0
+    
+    # Tally mined votes
+    for block in chain:
+        for vote in block.get('votes', []):
+            candidate = vote.get('candidate')
+            if candidate:
+                vote_counts[candidate] = vote_counts.get(candidate, 0) + 1
+                total_votes += 1
+                
+    # Tally pending votes
+    for vote in pending:
+        candidate = vote.get('candidate')
+        if candidate:
+            vote_counts[candidate] = vote_counts.get(candidate, 0) + 1
+            total_votes += 1
 
+    return render_template('admin_dashboard.html', 
+                           candidates=candidates, 
+                           chain=chain, 
+                           pending=pending, 
+                           vote_counts=vote_counts,
+                           total_votes=total_votes)
 
 @app.route('/admin/add_candidate', methods=['POST'])
 @login_required
