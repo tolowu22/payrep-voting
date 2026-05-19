@@ -306,6 +306,11 @@ def before_request():
     ensure_db()
 
 # --- 4. ROUTES ---
+@app.route('/')
+def landing():
+    """Public landing page to welcome users and direct them to login."""
+    return render_template('landing.html')
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -417,9 +422,9 @@ def logout():
         flash("You have been logged out.", "info")
     except Exception as e:
         print(f"Error in logout: {type(e).__name__}: {e}")
-    return redirect(url_for('login'))
+    return redirect(url_for('landing'))
 
-@app.route('/')
+@app.route('/dashboard')
 @login_required
 def index():
     # 1. Vercel-Safe /tmp Database Logic
