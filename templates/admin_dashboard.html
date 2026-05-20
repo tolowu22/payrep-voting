@@ -1,331 +1,207 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | TAT Blockchain Node</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    
-    <style>
-        /* Matches your main site's animated background */
-        body {
-            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #141E30);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            font-family: 'Inter', sans-serif;
-            color: #fff;
-            min-height: 100vh;
-            padding-bottom: 50px;
-        }
-
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Glassmorphism Cards */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            color: #333;
-            overflow: hidden;
-        }
-
-        .card-header-custom {
-            background: linear-gradient(90deg, #f8f9fa, #e9ecef);
-            padding: 1.5rem;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: 800;
-            color: #2c3e50;
-        }
-
-        .navbar-glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 3rem;
-        }
-
-        .btn-gradient {
-            background: linear-gradient(45deg, #434343, #000000);
-            border: none;
-            color: white;
-            font-weight: 600;
-        }
-        
-        .btn-gradient:hover { color: #4facfe; }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
-                <i class="fa-solid fa-shield-halved fa-lg me-2 text-warning"></i> 
-                <span style="letter-spacing: 1px;">TAT NODE ADMIN</span>
-            </a>
-            
-            <div class="d-flex align-items-center">
-                <a href="/" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold">
-                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Polling Station
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-lg border-0 rounded-3" role="alert">
-                <i class="fa-solid fa-circle-info me-2"></i> <strong>{{ message }}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <div class="row g-4 mb-5">
-            
-            <div class="col-lg-5">
-                <div class="glass-card h-100">
-                    <div class="card-header-custom">
-                        <i class="fa-solid fa-user-plus text-success me-2"></i>Register Candidate
-                    </div>
-                    <div class="card-body p-4">
-                        <form action="/admin/add_candidate" method="POST">
-                            <div class="mb-4">
-                                <label class="form-label text-uppercase text-muted small fw-bold">Candidate Name</label>
-                                <input type="text" name="name" class="form-control form-control-lg bg-light border-0" placeholder="e.g. John Doe" required>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label text-uppercase text-muted small fw-bold">Political Party</label>
-                                <input type="text" name="party" class="form-control form-control-lg bg-light border-0" placeholder="e.g. APC, PDP, LP" required>
-                            </div>
-
-                            <button type="submit" class="btn btn-gradient w-100 rounded-pill shadow-sm py-3 mt-2">
-                                <i class="fa-solid fa-plus me-2"></i> ADD TO BALLOT
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-7">
-                <div class="glass-card h-100">
-                    <div class="card-header-custom">
-                        <i class="fa-solid fa-users-rectangle text-primary me-2"></i>Official Ballot Overview
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="text-muted small text-uppercase">ID</th>
-                                        <th class="text-muted small text-uppercase">Name</th>
-                                        <th class="text-muted small text-uppercase">Party</th>
-                                        <th class="text-muted small text-uppercase text-end">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if candidates %}
-                                        {% for candidate in candidates %}
-                                        <tr>
-                                            <td><span class="badge bg-secondary bg-opacity-25 text-secondary">#{{ candidate[0] }}</span></td>
-                                            <td class="fw-bold">{{ candidate[1] }}</td>
-                                            <td><span class="badge bg-dark text-light px-2 py-1">{{ candidate[2] }}</span></td>
-                                            <td class="text-end">
-                                                <form action="/admin/delete_candidate/{{ candidate[0] }}" method="POST" style="display:inline;">
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">
-                                                        <i class="fa-solid fa-trash-can me-1"></i> Remove
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    {% else %}
-                                        <tr>
-                                            <td colspan="4" class="text-center py-5 text-muted">
-                                                <i class="fa-solid fa-folder-open fa-3x mb-3 opacity-25"></i>
-                                                <p class="mb-0">No candidates have been registered to the ballot yet.</p>
-                                            </td>
-                                        </tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html> -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | TAT Blockchain Node</title>
+    <title>Admin Dashboard | TAT Blockchain</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
+        /* --- Premium Studio Dark Theme --- */
+        :root {
+            --bg-main: #0a0a0a;
+            --bg-card: #111111;
+            --bg-hover: #1a1a1a;
+            --border-color: #262626;
+            --text-main: #ededed;
+            --text-muted: #a1a1aa;
+        }
+
         body {
-            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #141E30);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
             font-family: 'Inter', sans-serif;
-            color: #fff;
+            background-color: var(--bg-main);
+            color: var(--text-main);
             min-height: 100vh;
-            padding-bottom: 50px;
+            padding-bottom: 60px;
         }
 
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            color: #333;
-            overflow: hidden;
-        }
-
-        .card-header-custom {
-            background: linear-gradient(90deg, #f8f9fa, #e9ecef);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: 800;
-            color: #2c3e50;
-        }
-
-        .navbar-glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .text-muted-custom { color: var(--text-muted) !important; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+        
+        .navbar-custom {
+            background-color: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
             margin-bottom: 2rem;
         }
 
-        .stat-card {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .premium-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            height: 100%;
         }
-        
-        .hash-font {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
+        .card-header-premium {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
         }
 
-        .scrollable-table {
-            max-height: 400px;
-            overflow-y: auto;
+        /* Metric Blocks */
+        .metric-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-top: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Forms & Tables */
+        .form-control-premium {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+        }
+        .form-control-premium:focus {
+            background-color: var(--bg-hover);
+            border-color: var(--text-muted);
+            box-shadow: none;
+            color: white;
+        }
+        
+        .table-premium {
+            color: var(--text-main);
+            margin-bottom: 0;
+        }
+        .table-premium th {
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            padding: 1rem 1.5rem;
+            background-color: transparent;
+        }
+        .table-premium td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            background-color: transparent;
+            vertical-align: middle;
+        }
+        .table-premium tr:hover td {
+            background-color: var(--bg-hover);
+        }
+
+        .btn-primary-custom {
+            background-color: var(--text-main);
+            color: var(--bg-main);
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.6rem 1.2rem;
+            border: none;
+        }
+        .btn-primary-custom:hover { background-color: #d4d4d8; }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
+    <nav class="navbar navbar-custom sticky-top">
         <div class="container-fluid px-4">
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
-                <i class="fa-solid fa-shield-halved fa-lg me-2 text-warning"></i> 
-                <span style="letter-spacing: 1px;">TAT COMMAND CENTER</span>
+            <a class="navbar-brand text-white fw-bold d-flex align-items-center" href="#">
+                <i class="fa-solid fa-terminal me-2"></i> COMMAND CENTER
             </a>
-            <div class="d-flex align-items-center">
-                <a href="/" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold">
-                    <i class="fa-solid fa-arrow-left me-1"></i> Public Polling Station
-                </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 py-1 font-mono">ROOT ACCESS</span>
+                <a href="/" class="text-muted-custom text-decoration-none hover-white font-mono small">Exit to Terminal <i class="fa-solid fa-arrow-right ms-1"></i></a>
             </div>
         </div>
     </nav>
 
     <div class="container-fluid px-4">
+        
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-lg border-0 rounded-3">
-                <i class="fa-solid fa-circle-info me-2"></i> <strong>{{ message }}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              <div class="alert alert-{{ category }} bg-dark text-white border-{{ category }} mb-4" style="border-radius: 8px;">
+                {{ message }}
               </div>
             {% endfor %}
           {% endif %}
         {% endwith %}
 
-        <div class="row g-3 mb-4">
+        <div class="row g-4 mb-4">
             <div class="col-md-3">
-                <div class="stat-card">
-                    <h6 class="text-uppercase text-info fw-bold mb-1">Total Mined Blocks</h6>
-                    <h2 class="mb-0 fw-bold">{{ chain|length }}</h2>
+                <div class="metric-card">
+                    <span class="text-muted-custom small text-uppercase fw-semibold">Network Height</span>
+                    <span class="metric-value text-white">{{ chain|length }}</span>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card">
-                    <h6 class="text-uppercase text-success fw-bold mb-1">Total Votes Cast</h6>
-                    <h2 class="mb-0 fw-bold">{{ total_votes }}</h2>
+                <div class="metric-card">
+                    <span class="text-muted-custom small text-uppercase fw-semibold">Total Txns (Votes)</span>
+                    <span class="metric-value" style="color: #60a5fa;">{{ total_votes }}</span>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card">
-                    <h6 class="text-uppercase text-warning fw-bold mb-1">Pending in Mempool</h6>
-                    <h2 class="mb-0 fw-bold">{{ pending|length }}</h2>
+                <div class="metric-card">
+                    <span class="text-muted-custom small text-uppercase fw-semibold">Mempool Backlog</span>
+                    <span class="metric-value" style="color: #facc15;">{{ pending|length }}</span>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card">
-                    <h6 class="text-uppercase text-danger fw-bold mb-1">Active Candidates</h6>
-                    <h2 class="mb-0 fw-bold">{{ candidates|length }}</h2>
+                <div class="metric-card">
+                    <span class="text-muted-custom small text-uppercase fw-semibold">Active Candidates</span>
+                    <span class="metric-value text-white">{{ candidates|length }}</span>
                 </div>
             </div>
         </div>
 
         <div class="row g-4 mb-4">
             <div class="col-lg-4">
-                <div class="glass-card h-100">
-                    <div class="card-header-custom d-flex justify-content-between">
-                        <span><i class="fa-solid fa-users-rectangle text-primary me-2"></i>Manage Ballot</span>
+                <div class="premium-card">
+                    <div class="card-header-premium">
+                        <i class="fa-solid fa-users text-muted-custom me-2"></i> Ballot Configuration
                     </div>
                     <div class="card-body p-4">
-                        <form action="/admin/add_candidate" method="POST" class="mb-4">
-                            <div class="input-group mb-2">
-                                <input type="text" name="name" class="form-control bg-light border-0" placeholder="Candidate Name" required>
-                                <input type="text" name="party" class="form-control bg-light border-0" placeholder="Party" required>
+                        <form action="/admin/add_candidate" method="POST" class="mb-4 pb-4 border-bottom" style="border-color: var(--border-color)!important;">
+                            <div class="mb-3">
+                                <input type="text" name="name" class="form-control form-control-premium" placeholder="Candidate Name" required>
                             </div>
-                            <button type="submit" class="btn btn-dark w-100 fw-bold"><i class="fa-solid fa-plus me-1"></i> Add Candidate</button>
+                            <div class="mb-3">
+                                <input type="text" name="party" class="form-control form-control-premium" placeholder="Political Party" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary-custom w-100">Inject Candidate</button>
                         </form>
 
-                        <div class="list-group list-group-flush border-top pt-2">
+                        <div class="mt-2">
                             {% for candidate in candidates %}
-                            <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
-                                    <span class="fw-bold">{{ candidate[1] }}</span>
-                                    <span class="badge bg-secondary ms-1">{{ candidate[2] }}</span>
+                                    <div class="fw-medium">{{ candidate[1] }}</div>
+                                    <div class="text-muted-custom font-mono small">{{ candidate[2] }}</div>
                                 </div>
                                 <form action="/admin/delete_candidate/{{ candidate[0] }}" method="POST" class="m-0">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash-can"></i></button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px;"><i class="fa-solid fa-xmark"></i></button>
                                 </form>
                             </div>
                             {% else %}
-                            <p class="text-muted small text-center mt-3">No candidates registered.</p>
+                            <p class="text-muted-custom small text-center">Ballot is empty.</p>
                             {% endfor %}
                         </div>
                     </div>
@@ -333,25 +209,25 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="glass-card h-100">
-                    <div class="card-header-custom">
-                        <i class="fa-solid fa-chart-simple text-success me-2"></i>Live Electoral Tally
+                <div class="premium-card">
+                    <div class="card-header-premium">
+                        <i class="fa-solid fa-chart-bar text-muted-custom me-2"></i> Real-Time Tally
                     </div>
-                    <div class="card-body p-4 scrollable-table">
+                    <div class="card-body p-4">
                         {% for name, count in vote_counts.items() %}
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between small mb-1">
-                                    <span class="fw-bold">{{ name }}</span>
-                                    <span class="fw-bold text-success">{{ count }} votes</span>
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="fw-medium">{{ name }}</span>
+                                    <span class="font-mono">{{ count }}</span>
                                 </div>
-                                <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-success" style="width: {{ (count / total_votes * 100) if total_votes > 0 else 0 }}%;"></div>
+                                {% set percentage = (count / total_votes * 100)|round(1) if total_votes > 0 else 0 %}
+                                <div class="progress bg-dark" style="height: 6px;">
+                                    <div class="progress-bar" style="width: {{ percentage }}%; background-color: #60a5fa;"></div>
                                 </div>
                             </div>
                         {% else %}
-                            <div class="text-center py-4 text-muted">
-                                <i class="fa-solid fa-box-open fa-3x mb-3 opacity-25"></i>
-                                <p>No votes have been recorded on the chain yet.</p>
+                            <div class="text-center py-5">
+                                <p class="text-muted-custom">No electoral data available.</p>
                             </div>
                         {% endfor %}
                     </div>
@@ -359,74 +235,69 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="glass-card h-100">
-                    <div class="card-header-custom">
-                        <i class="fa-solid fa-microchip text-warning me-2"></i>Node Operations
+                <div class="premium-card">
+                    <div class="card-header-premium">
+                        <i class="fa-solid fa-terminal text-muted-custom me-2"></i> Node Operations
                     </div>
                     <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
-                        <i class="fa-solid fa-server fa-4x text-secondary opacity-25 mb-4"></i>
+                        <i class="fa-solid fa-network-wired fa-3x text-muted-custom mb-4 opacity-50"></i>
                         
-                        <a href="/mine" class="btn btn-warning btn-lg fw-bold mb-3 shadow-sm rounded-pill w-100">
-                            <i class="fa-solid fa-hammer me-2"></i> Force Mine Mempool
+                        <a href="/mine" class="btn btn-primary-custom w-100 mb-3 py-3 d-flex justify-content-between align-items-center">
+                            <span>Execute Mining Protocol</span>
+                            <i class="fa-solid fa-hammer"></i>
                         </a>
                         
-                        <a href="/validate" class="btn btn-dark btn-lg fw-bold rounded-pill w-100">
-                            <i class="fa-solid fa-link-slash me-2"></i> Audit Chain Integrity
+                        <a href="/validate" class="btn w-100 py-3 d-flex justify-content-between align-items-center" style="background-color: var(--bg-hover); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px;">
+                            <span>Audit Chain Cryptography</span>
+                            <i class="fa-solid fa-shield-check"></i>
                         </a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="glass-card mb-4">
-                    <div class="card-header-custom d-flex justify-content-between align-items-center">
-                        <span><i class="fa-solid fa-magnifying-glass-chart text-info me-2"></i>Immutable Audit Ledger (Who Voted For Who)</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive scrollable-table">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light sticky-top">
-                                    <tr>
-                                        <th class="px-4">Block #</th>
-                                        <th>Timestamp</th>
-                                        <th>Voter Identity</th>
-                                        <th>Candidate Selected</th>
-                                        <th>Block Hash</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for block in chain|reverse %}
-                                        {% if block.votes %}
-                                            {% for vote in block.votes %}
-                                            <tr>
-                                                <td class="px-4"><span class="badge bg-primary">Block {{ block.index }}</span></td>
-                                                <td class="text-muted small">{{ block.timestamp }}</td>
-                                                <td class="fw-bold hash-font">{{ vote.voter_id }}</td>
-                                                <td><span class="badge bg-dark">{{ vote.candidate }}</span></td>
-                                                <td class="hash-font text-muted">{{ block.previous_hash[:15] }}...</td>
-                                            </tr>
-                                            {% endfor %}
-                                        {% elif block.index == 1 %}
-                                            <tr>
-                                                <td class="px-4"><span class="badge bg-secondary">Block 1</span></td>
-                                                <td class="text-muted small">{{ block.timestamp }}</td>
-                                                <td colspan="2" class="text-center text-muted fst-italic">Genesis Block (Network Initialization)</td>
-                                                <td class="hash-font text-muted">{{ block.previous_hash[:15] }}...</td>
-                                            </tr>
-                                        {% endif %}
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+        <div class="premium-card mb-5">
+            <div class="card-header-premium">
+                <i class="fa-solid fa-database text-muted-custom me-2"></i> Raw Block Data (Audit Log)
+            </div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-premium">
+                    <thead class="sticky-top" style="background-color: var(--bg-card);">
+                        <tr>
+                            <th>Block Index</th>
+                            <th>Timestamp</th>
+                            <th>Voter Hash / ID</th>
+                            <th>Target Candidate</th>
+                            <th>Previous Hash</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for block in chain|reverse %}
+                            {% if block.votes %}
+                                {% for vote in block.votes %}
+                                <tr>
+                                    <td><span class="badge bg-dark border" style="border-color: var(--border-color)!important;">#{{ block.index }}</span></td>
+                                    <td class="font-mono text-muted-custom">{{ block.timestamp }}</td>
+                                    <td class="font-mono text-white">{{ vote.voter_id }}</td>
+                                    <td class="fw-medium">{{ vote.candidate }}</td>
+                                    <td class="font-mono text-muted-custom">{{ block.previous_hash[:15] }}...</td>
+                                </tr>
+                                {% endfor %}
+                            {% elif block.index == 1 %}
+                                <tr>
+                                    <td><span class="badge bg-dark border" style="border-color: var(--border-color)!important;">#1</span></td>
+                                    <td class="font-mono text-muted-custom">{{ block.timestamp }}</td>
+                                    <td colspan="2" class="text-muted-custom fst-italic">Genesis Configuration Block</td>
+                                    <td class="font-mono text-muted-custom">{{ block.previous_hash[:15] }}...</td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

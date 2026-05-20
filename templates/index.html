@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -419,6 +419,336 @@
 
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | TAT Blockchain</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- Premium Studio Dark Theme --- */
+        :root {
+            --bg-main: #0a0a0a;
+            --bg-card: #111111;
+            --bg-hover: #1a1a1a;
+            --border-color: #262626;
+            --text-main: #ededed;
+            --text-muted: #a1a1aa;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+
+        /* Typography & Utilities */
+        .text-muted-custom { color: var(--text-muted) !important; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+        
+        /* Modern Navbar */
+        .navbar-custom {
+            background-color: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        /* Sleek Cards */
+        .premium-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            transition: border-color 0.3s ease;
+            height: 100%;
+        }
+        .premium-card:hover {
+            border-color: #3f3f46;
+        }
+        .card-header-premium {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Form Controls */
+        .form-control-premium, .form-select-premium {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s;
+        }
+        .form-control-premium:focus, .form-select-premium:focus {
+            background-color: var(--bg-hover);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            color: white;
+        }
+        .form-control-premium:disabled {
+            background-color: var(--bg-hover);
+            opacity: 0.7;
+        }
+
+        /* Buttons */
+        .btn-primary-custom {
+            background-color: var(--text-main);
+            color: var(--bg-main);
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.75rem;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary-custom:hover {
+            background-color: #d4d4d8;
+            transform: translateY(-1px);
+        }
+
+        /* Blockchain Timeline */
+        .ledger-row {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        .ledger-row:hover {
+            background-color: var(--bg-hover);
+        }
+        .block-number {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--text-main);
+            min-width: 80px;
+        }
+        .hash-badge {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-custom sticky-top">
+        <div class="container">
+            <a class="navbar-brand text-white fw-bold d-flex align-items-center" href="/">
+                <i class="fa-solid fa-layer-group me-2" style="color: var(--accent-blue);"></i> TAT NODE
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-muted-custom small font-mono">
+                    <span style="color: var(--accent-green);">●</span> ID: {{ user.username }}
+                </span>
+                {% if user.username == 'admin' %}
+                <a href="/admin/dashboard" class="btn btn-sm btn-outline-light" style="border-radius: 6px;">Admin Panel</a>
+                {% endif %}
+                <a href="/logout" class="text-muted-custom text-decoration-none hover-white"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} bg-dark text-white border-{{ category }} mb-4" style="border-radius: 8px;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="row g-4 mb-5">
+            
+            <div class="col-lg-5">
+                <div class="premium-card">
+                    <div class="card-header-premium">
+                        <span><i class="fa-solid fa-check-to-slot me-2 text-muted-custom"></i>Voting Terminal</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1">Secured</span>
+                    </div>
+                    <div class="card-body p-4">
+                        {% if user.username == 'admin' %}
+                        <div class="text-center py-4">
+                            <i class="fa-solid fa-shield-halved fa-3x text-muted-custom mb-3"></i>
+                            <h5>Admin Mode</h5>
+                            <p class="text-muted-custom small">Admins cannot cast votes. Please use the Admin Panel to manage the network.</p>
+                        </div>
+                        {% else %}
+                        <form action="/vote" method="POST">
+                            <div class="mb-4">
+                                <label class="form-label text-muted-custom small fw-semibold text-uppercase tracking-wide">Verified Identity</label>
+                                <input type="text" class="form-control w-100 form-control-premium font-mono" value="{{ user.username }}" disabled>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-muted-custom small fw-semibold text-uppercase tracking-wide">Select Candidate</label>
+                                <select name="candidate" class="form-select w-100 form-select-premium" required>
+                                    <option value="" disabled selected>Select from official ballot...</option>
+                                    {% if candidates %}
+                                        {% for person in candidates %}
+                                            <option value="{{ person[1] }}">{{ person[1] }} ({{ person[2] }})</option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="" disabled>No candidates registered.</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary-custom w-100 mt-2">Sign & Cast Vote</button>
+                        </form>
+                        {% endif %}
+
+                        <hr class="my-4" style="border-color: var(--border-color);">
+
+                        <h6 class="text-muted-custom small fw-semibold text-uppercase mb-3">Live Network Tally</h6>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            {% set total_votes = vote_counts.values()|sum if vote_counts else 0 %}
+                            {% for name, count in vote_counts.items() %}
+                                {% if count > 0 %}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="fw-medium">{{ name }}</span>
+                                        <span class="font-mono text-muted-custom">{{ count }} votes</span>
+                                    </div>
+                                    {% set percentage = (count / total_votes * 100)|round(1) if total_votes > 0 else 0 %}
+                                    <div class="progress bg-dark" style="height: 4px;">
+                                        <div class="progress-bar" style="width: {{ percentage }}%; background-color: var(--text-main);"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            {% if total_votes == 0 %}
+                                <p class="text-center text-muted-custom small mt-4">Awaiting first block...</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="premium-card">
+                    <div class="card-header-premium">
+                        <span><i class="fa-solid fa-server me-2 text-muted-custom"></i>Mempool Status</span>
+                        {% if pending %}
+                            <span class="badge" style="background-color: #422006; color: #facc15; border: 1px solid #713f12;">{{ pending|length }} Unconfirmed</span>
+                        {% else %}
+                            <span class="badge" style="background-color: #052e16; color: #4ade80; border: 1px solid #14532d;">Synchronized</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-body p-4 d-flex flex-column h-100">
+                        <div class="flex-grow-1">
+                            {% if pending %}
+                                {% if user.username == 'admin' %}
+                                <div class="list-group list-group-flush">
+                                    {% for vote in pending %}
+                                    <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 border-bottom" style="border-color: var(--border-color)!important;">
+                                        <div>
+                                            <i class="fa-solid fa-circle-notch fa-spin text-muted-custom me-2"></i>
+                                            <span class="font-mono">{{ vote.voter_id }}</span>
+                                        </div>
+                                        <span class="badge bg-dark border" style="border-color: var(--border-color)!important;">{{ vote.candidate }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fa-solid fa-lock fa-2x text-muted-custom mb-3"></i>
+                                    <h6 class="fw-semibold">Transactions Pending</h6>
+                                    <p class="text-muted-custom small">Votes are currently in the mempool awaiting a miner. Data is encrypted for admins only.</p>
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fa-solid fa-check-double fa-2x text-muted-custom mb-3 opacity-50"></i>
+                                    <h6 class="text-muted-custom">Mempool is Empty</h6>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top" style="border-color: var(--border-color)!important;">
+                            <div class="d-flex gap-2">
+                                {% if pending %}
+                                <a href="/mine" class="btn btn-primary-custom flex-grow-1"><i class="fa-solid fa-hammer me-2"></i>Mine Block</a>
+                                {% else %}
+                                <button class="btn btn-primary-custom flex-grow-1 opacity-50" disabled>Fully Mined</button>
+                                {% endif %}
+                                <a href="/validate" class="btn btn-outline-light" style="border-color: var(--border-color);"><i class="fa-solid fa-shield-check"></i> Audit</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <h5 class="fw-semibold mb-4 d-flex align-items-center">
+                    <i class="fa-solid fa-link text-muted-custom me-2"></i> Immutable Ledger
+                </h5>
+                
+                <div>
+                    {% for block in chain|reverse %}
+                    <div class="ledger-row">
+                        <div class="block-number">#{{ block.index }}</div>
+                        <div class="flex-grow-1 px-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-5">
+                                    <div class="text-muted-custom small text-uppercase tracking-wide mb-1">Previous Hash</div>
+                                    <div class="hash-badge font-mono text-truncate">{{ block.previous_hash }}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-muted-custom small text-uppercase tracking-wide mb-1">Proof / Time</div>
+                                    <div class="font-mono text-muted-custom">{{ block.proof }} <span class="mx-1">•</span> {{ block.timestamp.split(' ')[1] if block.timestamp else '' }}</div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {% if block.votes %}
+                                        {% if user.username == 'admin' %}
+                                            {% for vote in block.votes %}
+                                            <div class="font-mono small">
+                                                <span class="text-muted-custom">{{ vote.voter_id }}</span> → <span class="text-white">{{ vote.candidate }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="badge bg-dark border" style="border-color: var(--border-color)!important;">{{ block.votes|length }} Txns</span>
+                                        {% endif %}
+                                    {% elif block.index == 1 %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Genesis Block</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+            </div>
+        </div>
+
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
