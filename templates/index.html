@@ -622,28 +622,28 @@
                         {% endif %}
 
                         <hr class="my-4" style="border-color: var(--border-color);">
-
                         <h6 class="text-muted-custom small fw-semibold text-uppercase mb-3">Live Network Tally</h6>
                         <div style="max-height: 200px; overflow-y: auto;">
-                            {% set total_votes = vote_counts.values()|sum if vote_counts else 0 %}
                             {% for name, count in vote_counts.items() %}
-                                {% if count > 0 %}
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between small mb-1">
-                                        <span class="fw-medium">{{ name }}</span>
-                                        <span class="font-mono text-muted-custom">{{ count }} votes</span>
-                                    </div>
-                                    {% set percentage = (count / total_votes * 100)|round(1) if total_votes > 0 else 0 %}
-                                    <div class="progress bg-dark" style="height: 4px;">
-                                        <div class="progress-bar" style="width: {{ percentage }}%; background-color: var(--text-main);"></div>
-                                    </div>
+                            {% if count > 0 %}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="fw-medium">{{ name }}</span>
+                                    <span class="font-mono text-muted-custom">{{ count }} votes</span>
                                 </div>
-                                {% endif %}
-                            {% endfor %}
-                            {% if total_votes == 0 %}
-                                <p class="text-center text-muted-custom small mt-4">Awaiting first block...</p>
-                            {% endif %}
-                        </div>
+                                {% set percentage = (count / total_votes * 100)|round(1) if total_votes > 0 else 0 %}
+                                <div class="progress bg-dark" style="height: 4px;">
+                                    <div class="progress-bar" style="width: {{ percentage }}%; background-color: var(--text-main);"></div>
+                                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+    
+    {% if total_votes == 0 %}
+        <p class="text-center text-muted-custom small mt-4">Awaiting first block...</p>
+    {% endif %}
+</div>                       </div>
                     </div>
                 </div>
             </div>

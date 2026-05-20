@@ -389,13 +389,10 @@ def login():
         try:
             with sqlite3.connect(DB_NAME) as conn:
                 cursor = conn.cursor()
-                # Fetch id, username, password, and is_verified status
                 cursor.execute("SELECT id, username, password, is_verified FROM users WHERE username = ?", (username,))
                 user_data = cursor.fetchone()
                 
                 if user_data and check_password_hash(user_data[2], password):
-                    
-                    # Prevent login if email is not verified
                     if user_data[3] == 0: 
                         flash("Access Denied: Please verify your email address before logging in.", "warning")
                         return render_template('login.html')
@@ -406,12 +403,15 @@ def login():
                     session.permanent = True
                     log_activity("User logged in", username)
                     flash(f"Welcome back, {username}!", "success")
-                    return redirect(url_for('index'))
+                    
+                    # Redirects to the 'index' function below
+                    return redirect(url_for('index')) 
                 else:
                     flash("Invalid credentials.", "danger")
         except Exception as e:
             print(f"Error in login: {type(e).__name__}: {e}")
             flash("Login service temporarily unavailable. Please try again.", "danger")
+            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -438,46 +438,42 @@ def index():
 
     conn = sqlite3.connect(tmp_db)
     cursor = conn.cursor()
-    
     try:
-        cursor.execute('''CREATE TABLE IF NOT EXISTS candidates (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            name TEXT NOT NULL,
-                            party TEXT NOT NULL)''')
         cursor.execute("SELECT * FROM candidates")
         candidates = cursor.fetchall()
     except sqlite3.OperationalError:
         candidates = [] 
-        
     conn.close()
 
-    # 2. GATHER BLOCKCHAIN DATA
-    chain = blockchain.chain
-    pending = blockchain.pending_votes
+    # 2. GATHER BLOCKCHAIN DATA (Safely)
+    chain = getattr(blockchain, 'chain', [])
+    pending = getattr(blockchain, 'pending_votes', [])
 
-    # 3. TALLY VOTES (MEMPOOL + CHAIN)
+    # 3. TALLY VOTES IN PYTHON (Safest for Vercel)
     vote_counts = {}
     
-    # Tally mined votes
     for block in chain:
         for vote in block.get('votes', []): 
             candidate = vote.get('candidate')
             if candidate:
                 vote_counts[candidate] = vote_counts.get(candidate, 0) + 1
 
-    # Tally pending votes (so the UI updates immediately after voting!)
     for vote in pending:
         candidate = vote.get('candidate')
         if candidate:
             vote_counts[candidate] = vote_counts.get(candidate, 0) + 1
 
-    # 4. PASS ALL VARIABLES TO THE TEMPLATE
+    # Calculate total safely in Python to prevent HTML crashes
+    total_votes = sum(vote_counts.values())
+
+    # 4. PASS ALL VARIABLES
     return render_template('index.html', 
                            candidates=candidates, 
                            user=current_user, 
                            vote_counts=vote_counts,
                            chain=chain,
-                           pending=pending)
+                           pending=pending,
+                           total_votes=total_votes)
 
 @app.route('/vote', methods=['POST'])
 @login_required
