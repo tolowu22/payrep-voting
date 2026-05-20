@@ -722,7 +722,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="text-muted-custom small text-uppercase tracking-wide mb-1">Proof / Time</div>
-                                    <div class="font-mono text-muted-custom">{{ block.proof }} <span class="mx-1">•</span> {{ block.timestamp.split(' ')[1] if block.timestamp else '' }}</div>
+                                    <div class="font-mono text-muted-custom">{{ block.proof }} <span class="mx-1">•</span> {{ block.timestamp }}</div>
                                 </div>
                                 <div class="col-md-4 text-end">
                                     {% if block.votes %}
